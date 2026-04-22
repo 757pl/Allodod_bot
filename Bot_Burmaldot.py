@@ -6,7 +6,7 @@ from telegram.ext import (ApplicationBuilder, CommandHandler, ContextTypes)
 from dotenv import load_dotenv
 from database import init_db, add_reminder, get_reminders, delete_reminder
 from reminders import check_reminders
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 # ========== ПОДКЛЮЧЕНИЕ ==========
 load_dotenv()
