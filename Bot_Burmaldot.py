@@ -52,7 +52,7 @@ async def add(update, context):
     except:
         await update.message.reply_text("❌ Ошибка. Используй: `/add 28.04 Текст`", parse_mode='Markdown')
 
-# ========== КОМАНДА /list (сортировка по дате + группировка) ==========
+# ========== КОМАНДА /list ==========
 async def list_reminders(update, context):
     tz = pytz.timezone('Asia/Irkutsk')
     today = datetime.now(tz)
@@ -75,59 +75,59 @@ async def list_reminders(update, context):
     day3_list = []
     other_list = []
     
-    for rem_id, event_date, event_text in reminders:
+    for rem_id, event_date, event_text, display_order in reminders:
         if event_date == today_str:
-            today_list.append((rem_id, event_date, event_text))
+            today_list.append((display_order, event_date, event_text))
         elif event_date == tomorrow_str:
-            tomorrow_list.append((rem_id, event_date, event_text))
+            tomorrow_list.append((display_order, event_date, event_text))
         elif event_date == day2_str:
-            day2_list.append((rem_id, event_date, event_text))
+            day2_list.append((display_order, event_date, event_text))
         elif event_date == day3_str:
-            day3_list.append((rem_id, event_date, event_text))
+            day3_list.append((display_order, event_date, event_text))
         else:
-            other_list.append((rem_id, event_date, event_text))
+            other_list.append((display_order, event_date, event_text))
     
     text = "📋 **Список напоминаний:**\n\n"
     
     if today_list:
         text += "🔴 **СЕГОДНЯ:**\n"
-        for rem_id, event_date, event_text in today_list:
-            text += f"   `{rem_id}`. {event_text}\n"
+        for order, event_date, event_text in today_list:
+            text += f"   `{order}`. {event_text}\n"
         text += "\n"
     
     if tomorrow_list:
         text += "🟠 **ЗАВТРА:**\n"
-        for rem_id, event_date, event_text in tomorrow_list:
-            text += f"   `{rem_id}`. {event_text}\n"
+        for order, event_date, event_text in tomorrow_list:
+            text += f"   `{order}`. {event_text}\n"
         text += "\n"
     
     if day2_list:
         text += "🟡 **ЧЕРЕЗ 2 ДНЯ:**\n"
-        for rem_id, event_date, event_text in day2_list:
-            text += f"   `{rem_id}`. {event_text}\n"
+        for order, event_date, event_text in day2_list:
+            text += f"   `{order}`. {event_text}\n"
         text += "\n"
     
     if day3_list:
         text += "🟢 **ЧЕРЕЗ 3 ДНЯ:**\n"
-        for rem_id, event_date, event_text in day3_list:
-            text += f"   `{rem_id}`. {event_text}\n"
+        for order, event_date, event_text in day3_list:
+            text += f"   `{order}`. {event_text}\n"
         text += "\n"
     
     if other_list:
         text += "⚪ **ОСТАЛЬНЫЕ:**\n"
-        for rem_id, event_date, event_text in other_list:
-            text += f"   `{rem_id}`. {event_date} — {event_text}\n"
+        for order, event_date, event_text in other_list:
+            text += f"   `{order}`. {event_date} — {event_text}\n"
     
     await update.message.reply_text(text, parse_mode='Markdown')
 
 # ========== КОМАНДА /del ==========
 async def delete(update, context):
     try:
-        reminder_id = int(context.args[0])
+        display_order = int(context.args[0])
         chat_id = update.effective_chat.id
         
-        delete_reminder(reminder_id, chat_id)
-        await update.message.reply_text(f"✅ Напоминание {reminder_id} удалено!")
+        delete_reminder(display_order, chat_id)
+        await update.message.reply_text(f"✅ Напоминание {display_order} удалено!")
     except:
         await update.message.reply_text("❌ Используй: `/del <номер>`\nНомер можно узнать через `/list`", parse_mode='Markdown')
 
