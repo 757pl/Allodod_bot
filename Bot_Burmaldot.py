@@ -1,4 +1,5 @@
 import os
+import sqlite3
 from datetime import time
 import pytz
 from telegram import Update
@@ -83,11 +84,53 @@ async def delete(update, context):
     except:
         await update.message.reply_text("❌ Используй: `/del <номер>`\nНомер можно узнать через `/list`", parse_mode='Markdown')
 
+async def today(update, context):
+    tz = pytz.timezone('Asia/Irkutsk')
+    today = datetime.now(tz).strftime('%d.%m')
+    chat_id = update.effective_chat.id
+    
+    conn = sqlite3.connect('reminders.db')
+    cur = conn.cursor()
+    cur.execute('SELECT event_text FROM reminders WHERE chat_id = ? AND event_date = ?', (chat_id, today))
+    reminders = cur.fetchall()
+    conn.close()
+    
+    if not reminders:
+        await update.message.reply_text("📭 На сегодня напоминаний нет")
+        return
+    
+    text = f"📅 **Напоминания на сегодня ({today}):**\n\n"
+    for r in reminders:
+        text += f"🔹 {r[0]}\n"
+    await update.message.reply_text(text, parse_mode='Markdown')
+
+async def tomorrow(update, context):
+    tz = pytz.timezone('Asia/Irkutsk')
+    tomorrow = (datetime.now(tz) + timedelta(days=1)).strftime('%d.%m')
+    chat_id = update.effective_chat.id
+    
+    conn = sqlite3.connect('reminders.db')
+    cur = conn.cursor()
+    cur.execute('SELECT event_text FROM reminders WHERE chat_id = ? AND event_date = ?', (chat_id, tomorrow))
+    reminders = cur.fetchall()
+    conn.close()
+    
+    if not reminders:
+        await update.message.reply_text(f"📭 На завтра ({tomorrow}) напоминаний нет")
+        return
+    
+    text = f"📅 **Напоминания на завтра ({tomorrow}):**\n\n"
+    for r in reminders:
+        text += f"🔹 {r[0]}\n"
+    await update.message.reply_text(text, parse_mode='Markdown')
+
 # ========== ПОДКЛЮЧЕНИЕ КОМАНД ==========
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("add", add))
 app.add_handler(CommandHandler("list", list_reminders))
 app.add_handler(CommandHandler("del", delete))
+app.add_handler(CommandHandler("today", today))
+app.add_handler(CommandHandler("tomorrow", tomorrow))
 
 # ========== НАСТРОЙКА НАПОМИНАНИЙ (12:00 Улан-Удэ) ==========
 tz = pytz.timezone('Asia/Irkutsk')
