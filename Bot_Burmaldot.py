@@ -58,6 +58,7 @@ async def list_reminders(update, context):
     today = datetime.now(tz)
     today_str = today.strftime('%d.%m')
     tomorrow_str = (today + timedelta(days=1)).strftime('%d.%m')
+    day2_str = (today + timedelta(days=2)).strftime('%d.%m')
     day3_str = (today + timedelta(days=3)).strftime('%d.%m')
     
     chat_id = update.effective_chat.id
@@ -73,6 +74,7 @@ async def list_reminders(update, context):
     # Группировка
     today_list = []
     tomorrow_list = []
+    day2_list = []
     day3_list = []
     other_list = []
     
@@ -81,6 +83,8 @@ async def list_reminders(update, context):
             today_list.append((rem_id, event_date, event_text))
         elif event_date == tomorrow_str:
             tomorrow_list.append((rem_id, event_date, event_text))
+        elif event_date == day2_str:
+            day2_list.append((rem_id, event_date, event_text))
         elif event_date == day3_str:
             day3_list.append((rem_id, event_date, event_text))
         else:
@@ -101,16 +105,23 @@ async def list_reminders(update, context):
             text += f"   {idx}. {event_text}\n"
         text += "\n"
     
-    if day3_list:
-        text += "🟡 **ЧЕРЕЗ 3 ДНЯ:**\n"
+    if day2_list:
+        text += "🟡 **ЧЕРЕЗ 2 ДНЯ:**\n"
         start_idx = len(today_list) + len(tomorrow_list) + 1
+        for idx, (rem_id, event_date, event_text) in enumerate(day2_list, start_idx):
+            text += f"   {idx}. {event_text}\n"
+        text += "\n"
+    
+    if day3_list:
+        text += "🟢 **ЧЕРЕЗ 3 ДНЯ:**\n"
+        start_idx = len(today_list) + len(tomorrow_list) + len(day2_list) + 1
         for idx, (rem_id, event_date, event_text) in enumerate(day3_list, start_idx):
             text += f"   {idx}. {event_text}\n"
         text += "\n"
     
     if other_list:
         text += "⚪ **ОСТАЛЬНЫЕ:**\n"
-        start_idx = len(today_list) + len(tomorrow_list) + len(day3_list) + 1
+        start_idx = len(today_list) + len(tomorrow_list) + len(day2_list) + len(day3_list) + 1
         for idx, (rem_id, event_date, event_text) in enumerate(other_list, start_idx):
             text += f"   {idx}. {event_date} — {event_text}\n"
     
