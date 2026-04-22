@@ -32,3 +32,23 @@ async def check_reminders(context):
             await context.bot.send_message(chat_id=chat_id, text=message, parse_mode='Markdown')
         except:
             pass
+
+def delete_old_reminders():
+    """Удаляет просроченные задачи (дата раньше сегодняшней)"""
+    from datetime import datetime
+    import pytz
+    import sqlite3
+    
+    tz = pytz.timezone('Asia/Irkutsk')
+    today = datetime.now(tz).strftime('%d.%m')
+    
+    conn = sqlite3.connect('reminders.db')
+    cur = conn.cursor()
+    cur.execute('DELETE FROM reminders WHERE event_date < ?', (today,))
+    deleted = cur.rowcount
+    conn.commit()
+    conn.close()
+    
+    if deleted > 0:
+        print(f"🗑 Удалено просроченных напоминаний: {deleted}")
+    return deleted
