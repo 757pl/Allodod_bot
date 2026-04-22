@@ -5,14 +5,16 @@ import sqlite3
 from telegram import Update
 from telegram.ext import (ApplicationBuilder, CommandHandler, ContextTypes)
 from dotenv import load_dotenv
-from database import init_db, add_reminder, get_reminders, delete_reminder
-from reminders import check_reminders
+from database import init_db, migrate_db, add_reminder, get_reminders, delete_reminder
+from reminders import check_reminders, delete_old_reminders
 
 # ========== ПОДКЛЮЧЕНИЕ ==========
 load_dotenv()
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 app = ApplicationBuilder().token(TOKEN).build()
 init_db()
+migrate_db()          # Добавляет колонку display_order, если нужно
+delete_old_reminders() # Удаляет просроченные задачи при запуске
 
 # ========== КОМАНДА /start ==========
 async def start(update, context):
@@ -49,8 +51,8 @@ async def add(update, context):
         
         add_reminder(chat_id, event_date, event_text)
         await update.message.reply_text(f"✅ Напоминание добавлено!\n📅 {event_date}: {event_text}")
-    except:
-        await update.message.reply_text("❌ Ошибка. Используй: `/add 28.04 Текст`", parse_mode='Markdown')
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка: {e}", parse_mode='Markdown')
 
 # ========== КОМАНДА /list ==========
 async def list_reminders(update, context):
