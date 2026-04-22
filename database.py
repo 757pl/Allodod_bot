@@ -18,18 +18,24 @@ def init_db():
     conn.close()
 
 def migrate_db():
+    """Добавляет колонку display_order, если её нет"""
     conn = sqlite3.connect('reminders.db')
     cur = conn.cursor()
     try:
         cur.execute('ALTER TABLE reminders ADD COLUMN display_order INTEGER DEFAULT 0')
         print("✅ Колонка display_order добавлена")
+        
+        # Обновляем display_order для старых записей
+        cur.execute('SELECT id FROM reminders ORDER BY id')
+        rows = cur.fetchall()
+        for idx, (row_id,) in enumerate(rows, 1):
+            cur.execute('UPDATE reminders SET display_order = ? WHERE id = ?', (idx, row_id))
+        if rows:
+            print(f"✅ Обновлено {len(rows)} записей")
     except sqlite3.OperationalError:
         print("ℹ️ Колонка display_order уже есть")
     conn.commit()
     conn.close()
-
-# Вызвать после init_db()
-migrate_db()
 
 def add_reminder(chat_id, event_date, event_text):
     conn = sqlite3.connect('reminders.db')
