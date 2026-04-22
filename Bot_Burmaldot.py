@@ -68,9 +68,6 @@ async def list_reminders(update, context):
         await update.message.reply_text("📭 Нет активных напоминаний")
         return
     
-    # Сохраняем соответствие для удаления
-    context.chat_data['reminder_ids'] = {idx+1: rem_id for idx, (rem_id, event_date, event_text) in enumerate(reminders)}
-    
     # Группировка
     today_list = []
     tomorrow_list = []
@@ -94,53 +91,43 @@ async def list_reminders(update, context):
     
     if today_list:
         text += "🔴 **СЕГОДНЯ:**\n"
-        for idx, (rem_id, event_date, event_text) in enumerate(today_list, 1):
-            text += f"   {idx}. {event_text}\n"
+        for rem_id, event_date, event_text in today_list:
+            text += f"   `{rem_id}`. {event_text}\n"
         text += "\n"
     
     if tomorrow_list:
         text += "🟠 **ЗАВТРА:**\n"
-        start_idx = len(today_list) + 1
-        for idx, (rem_id, event_date, event_text) in enumerate(tomorrow_list, start_idx):
-            text += f"   {idx}. {event_text}\n"
+        for rem_id, event_date, event_text in tomorrow_list:
+            text += f"   `{rem_id}`. {event_text}\n"
         text += "\n"
     
     if day2_list:
         text += "🟡 **ЧЕРЕЗ 2 ДНЯ:**\n"
-        start_idx = len(today_list) + len(tomorrow_list) + 1
-        for idx, (rem_id, event_date, event_text) in enumerate(day2_list, start_idx):
-            text += f"   {idx}. {event_text}\n"
+        for rem_id, event_date, event_text in day2_list:
+            text += f"   `{rem_id}`. {event_text}\n"
         text += "\n"
     
     if day3_list:
         text += "🟢 **ЧЕРЕЗ 3 ДНЯ:**\n"
-        start_idx = len(today_list) + len(tomorrow_list) + len(day2_list) + 1
-        for idx, (rem_id, event_date, event_text) in enumerate(day3_list, start_idx):
-            text += f"   {idx}. {event_text}\n"
+        for rem_id, event_date, event_text in day3_list:
+            text += f"   `{rem_id}`. {event_text}\n"
         text += "\n"
     
     if other_list:
         text += "⚪ **ОСТАЛЬНЫЕ:**\n"
-        start_idx = len(today_list) + len(tomorrow_list) + len(day2_list) + len(day3_list) + 1
-        for idx, (rem_id, event_date, event_text) in enumerate(other_list, start_idx):
-            text += f"   {idx}. {event_date} — {event_text}\n"
+        for rem_id, event_date, event_text in other_list:
+            text += f"   `{rem_id}`. {event_date} — {event_text}\n"
     
     await update.message.reply_text(text, parse_mode='Markdown')
 
 # ========== КОМАНДА /del ==========
 async def delete(update, context):
     try:
-        temp_id = int(context.args[0])
+        reminder_id = int(context.args[0])
         chat_id = update.effective_chat.id
         
-        reminder_ids = context.chat_data.get('reminder_ids', {})
-        real_id = reminder_ids.get(temp_id)
-        
-        if real_id:
-            delete_reminder(real_id, chat_id)
-            await update.message.reply_text(f"✅ Напоминание {temp_id} удалено!")
-        else:
-            await update.message.reply_text("❌ Неверный номер. Используй `/list` чтобы увидеть актуальные номера.", parse_mode='Markdown')
+        delete_reminder(reminder_id, chat_id)
+        await update.message.reply_text(f"✅ Напоминание {reminder_id} удалено!")
     except:
         await update.message.reply_text("❌ Используй: `/del <номер>`\nНомер можно узнать через `/list`", parse_mode='Markdown')
 
