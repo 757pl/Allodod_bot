@@ -1,12 +1,12 @@
 import os
-import sqlite3
+from datetime import datetime, timedelta, time
 import pytz
+import sqlite3
 from telegram import Update
 from telegram.ext import (ApplicationBuilder, CommandHandler, ContextTypes)
 from dotenv import load_dotenv
 from database import init_db, add_reminder, get_reminders, delete_reminder
 from reminders import check_reminders
-from datetime import datetime, timedelta, time
 
 # ========== ПОДКЛЮЧЕНИЕ ==========
 load_dotenv()
@@ -21,8 +21,10 @@ async def start(update, context):
         "Я бот-напоминалка для класса.\n\n"
         "📌 **Команды:**\n"
         "/add 28.04 Текст — добавить напоминание\n"
-        "/list — список всех напоминаний\n"
-        "/del <номер> — удалить напоминание\n\n"
+        "/list — список напоминаний (сортировка по дате)\n"
+        "/del <номер> — удалить напоминание\n"
+        "/today — напоминания на сегодня\n"
+        "/tomorrow — напоминания на завтра\n\n"
         "⏰ Напоминания приходят в 12:00 (Улан-Удэ)\n"
         "   за 3 дня, за 1 день и в день события\n\n"
         "Пример: `/add 28.04 Контрольная по математике`",
@@ -50,8 +52,14 @@ async def add(update, context):
     except:
         await update.message.reply_text("❌ Ошибка. Используй: `/add 28.04 Текст`", parse_mode='Markdown')
 
-# ========== КОМАНДА /list ==========
+# ========== КОМАНДА /list (сортировка по дате + группировка) ==========
 async def list_reminders(update, context):
+    tz = pytz.timezone('Asia/Irkutsk')
+    today = datetime.now(tz)
+    today_str = today.strftime('%d.%m')
+    tomorrow_str = (today + timedelta(days=1)).strftime('%d.%m')
+    day3_str = (today + timedelta(days=3)).strftime('%d.%m')
+    
     chat_id = update.effective_chat.id
     reminders = get_reminders(chat_id)
     
@@ -59,11 +67,52 @@ async def list_reminders(update, context):
         await update.message.reply_text("📭 Нет активных напоминаний")
         return
     
+    # Сохраняем соответствие для удаления
     context.chat_data['reminder_ids'] = {idx+1: rem_id for idx, (rem_id, event_date, event_text) in enumerate(reminders)}
     
+    # Группировка
+    today_list = []
+    tomorrow_list = []
+    day3_list = []
+    other_list = []
+    
+    for rem_id, event_date, event_text in reminders:
+        if event_date == today_str:
+            today_list.append((rem_id, event_date, event_text))
+        elif event_date == tomorrow_str:
+            tomorrow_list.append((rem_id, event_date, event_text))
+        elif event_date == day3_str:
+            day3_list.append((rem_id, event_date, event_text))
+        else:
+            other_list.append((rem_id, event_date, event_text))
+    
     text = "📋 **Список напоминаний:**\n\n"
-    for idx, (rem_id, event_date, event_text) in enumerate(reminders, 1):
-        text += f"🔹 `{idx}`. {event_date} — {event_text}\n"
+    
+    if today_list:
+        text += "🔴 **СЕГОДНЯ:**\n"
+        for idx, (rem_id, event_date, event_text) in enumerate(today_list, 1):
+            text += f"   {idx}. {event_text}\n"
+        text += "\n"
+    
+    if tomorrow_list:
+        text += "🟠 **ЗАВТРА:**\n"
+        start_idx = len(today_list) + 1
+        for idx, (rem_id, event_date, event_text) in enumerate(tomorrow_list, start_idx):
+            text += f"   {idx}. {event_text}\n"
+        text += "\n"
+    
+    if day3_list:
+        text += "🟡 **ЧЕРЕЗ 3 ДНЯ:**\n"
+        start_idx = len(today_list) + len(tomorrow_list) + 1
+        for idx, (rem_id, event_date, event_text) in enumerate(day3_list, start_idx):
+            text += f"   {idx}. {event_text}\n"
+        text += "\n"
+    
+    if other_list:
+        text += "⚪ **ОСТАЛЬНЫЕ:**\n"
+        start_idx = len(today_list) + len(tomorrow_list) + len(day3_list) + 1
+        for idx, (rem_id, event_date, event_text) in enumerate(other_list, start_idx):
+            text += f"   {idx}. {event_date} — {event_text}\n"
     
     await update.message.reply_text(text, parse_mode='Markdown')
 
@@ -80,46 +129,48 @@ async def delete(update, context):
             delete_reminder(real_id, chat_id)
             await update.message.reply_text(f"✅ Напоминание {temp_id} удалено!")
         else:
-            await update.message.reply_text("❌ Неверный номер. Используй `/list`", parse_mode='Markdown')
+            await update.message.reply_text("❌ Неверный номер. Используй `/list` чтобы увидеть актуальные номера.", parse_mode='Markdown')
     except:
         await update.message.reply_text("❌ Используй: `/del <номер>`\nНомер можно узнать через `/list`", parse_mode='Markdown')
 
+# ========== КОМАНДА /today ==========
 async def today(update, context):
     tz = pytz.timezone('Asia/Irkutsk')
-    today = datetime.now(tz).strftime('%d.%m')
+    today_date = datetime.now(tz).strftime('%d.%m')
     chat_id = update.effective_chat.id
     
     conn = sqlite3.connect('reminders.db')
     cur = conn.cursor()
-    cur.execute('SELECT event_text FROM reminders WHERE chat_id = ? AND event_date = ?', (chat_id, today))
+    cur.execute('SELECT event_text FROM reminders WHERE chat_id = ? AND event_date = ?', (chat_id, today_date))
     reminders = cur.fetchall()
     conn.close()
     
     if not reminders:
-        await update.message.reply_text("📭 На сегодня напоминаний нет")
+        await update.message.reply_text(f"📭 На сегодня ({today_date}) напоминаний нет")
         return
     
-    text = f"📅 **Напоминания на сегодня ({today}):**\n\n"
+    text = f"📅 **Напоминания на сегодня ({today_date}):**\n\n"
     for r in reminders:
         text += f"🔹 {r[0]}\n"
     await update.message.reply_text(text, parse_mode='Markdown')
 
+# ========== КОМАНДА /tomorrow ==========
 async def tomorrow(update, context):
     tz = pytz.timezone('Asia/Irkutsk')
-    tomorrow = (datetime.now(tz) + timedelta(days=1)).strftime('%d.%m')
+    tomorrow_date = (datetime.now(tz) + timedelta(days=1)).strftime('%d.%m')
     chat_id = update.effective_chat.id
     
     conn = sqlite3.connect('reminders.db')
     cur = conn.cursor()
-    cur.execute('SELECT event_text FROM reminders WHERE chat_id = ? AND event_date = ?', (chat_id, tomorrow))
+    cur.execute('SELECT event_text FROM reminders WHERE chat_id = ? AND event_date = ?', (chat_id, tomorrow_date))
     reminders = cur.fetchall()
     conn.close()
     
     if not reminders:
-        await update.message.reply_text(f"📭 На завтра ({tomorrow}) напоминаний нет")
+        await update.message.reply_text(f"📭 На завтра ({tomorrow_date}) напоминаний нет")
         return
     
-    text = f"📅 **Напоминания на завтра ({tomorrow}):**\n\n"
+    text = f"📅 **Напоминания на завтра ({tomorrow_date}):**\n\n"
     for r in reminders:
         text += f"🔹 {r[0]}\n"
     await update.message.reply_text(text, parse_mode='Markdown')
