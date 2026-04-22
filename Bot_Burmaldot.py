@@ -1,12 +1,12 @@
 import os
 import sqlite3
-from datetime import time
 import pytz
 from telegram import Update
 from telegram.ext import (ApplicationBuilder, CommandHandler, ContextTypes)
 from dotenv import load_dotenv
 from database import init_db, add_reminder, get_reminders, delete_reminder
 from reminders import check_reminders
+from datetime import datetime, timedelta
 
 # ========== ПОДКЛЮЧЕНИЕ ==========
 load_dotenv()
