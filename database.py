@@ -29,7 +29,7 @@ def add_reminder(chat_id, event_date, event_text):
 def get_reminders(chat_id):
     conn = sqlite3.connect('reminders.db')
     cur = conn.cursor()
-    cur.execute('SELECT id, event_date, event_text FROM reminders WHERE chat_id = ? ORDER BY id', (chat_id,))
+    cur.execute('SELECT id, event_date, event_text FROM reminders WHERE chat_id = ? ORDER BY event_date', (chat_id,))
     reminders = cur.fetchall()
     conn.close()
     return reminders
