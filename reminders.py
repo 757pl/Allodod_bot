@@ -7,6 +7,7 @@ async def check_reminders(context):
     now = datetime.now(tz)
     today = now.strftime('%d.%m')
     day1 = (now + timedelta(days=1)).strftime('%d.%m')
+    day2 = (now + timedelta(days=2)).strftime('%d.%m')
     day3 = (now + timedelta(days=3)).strftime('%d.%m')
     
     conn = sqlite3.connect('reminders.db')
@@ -20,6 +21,8 @@ async def check_reminders(context):
             message = f"🔔 **СЕГОДНЯ!**\n📅 {event_date}: {event_text}"
         elif event_date == day1:
             message = f"🔔 **ЗАВТРА!**\n📅 {event_date}: {event_text}"
+        elif event_date == day2:
+            message = f"🔔 **ЧЕРЕЗ 2 ДНЯ!**\n📅 {event_date}: {event_text}"
         elif event_date == day3:
             message = f"🔔 **ЧЕРЕЗ 3 ДНЯ!**\n📅 {event_date}: {event_text}"
         else:
