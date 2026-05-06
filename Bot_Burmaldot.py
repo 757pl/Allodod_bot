@@ -185,7 +185,7 @@ app.add_handler(CommandHandler("tomorrow", tomorrow))
 
 # ========== НАСТРОЙКА НАПОМИНАНИЙ (12:00 Улан-Удэ) ==========
 tz = pytz.timezone('Asia/Irkutsk')
-app.job_queue.run_daily(check_reminders, time=time(hour=12, minute=0, tzinfo=tz))
+app.job_queue.run_daily(check_reminders, time=time(hour=7, minute=0, tzinfo=tz))
 
 # ========== ЗАПУСК ==========
 if __name__ == "__main__":
